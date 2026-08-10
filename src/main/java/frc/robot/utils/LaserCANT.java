@@ -40,58 +40,54 @@ public class LaserCANT extends LaserCan {
 
     @Override
     public int getSize() {
-      return kSizeInt32;
-      // + kSizeInt32
-      // + kSizeInt32
-      // + kSizeBool
-      // + kSizeInt32
-      // + kSizeInt32
-      // + kSizeInt32
-      // + kSizeInt32
-      // + kSizeInt32;
+      return kSizeInt32
+          + kSizeInt32
+          + kSizeInt32
+          + kSizeBool
+          + kSizeInt32
+          + kSizeInt32
+          + kSizeInt32
+          + kSizeInt32
+          + kSizeInt32;
     }
 
     @Override
     public String getSchema() {
-      return "int status"; // ;int distance_mm;int ambient;byte is_long;int budget_ms;int x;int
-      // y;int w;int h;";
+      return "int32 status;int32 distance_mm;int32 ambient;bool is_long;int32 budget_ms;int32 x;int32 y;int32 w;int32 h";
     }
 
     @Override
     public Measurement unpack(ByteBuffer bb) {
       int status = bb.getInt();
-      // int distance_mm = bb.getInt();
-      // int ambient = bb.getInt();
-      // boolean is_long = bb.get() == 1;
-      // int budget_ms = bb.getInt();
-      // int x = bb.getInt();
-      // int y = bb.getInt();
-      // int w = bb.getInt();
-      // int h = bb.getInt();
+      int distance_mm = bb.getInt();
+      int ambient = bb.getInt();
+      boolean is_long = bb.get() == 1;
+      int budget_ms = bb.getInt();
+      int x = bb.getInt();
+      int y = bb.getInt();
+      int w = bb.getInt();
+      int h = bb.getInt();
 
-      // var roi = new RegionOfInterest(x, y, w, h);
-      // return new Measurement(status, distance_mm, ambient, is_long, budget_ms, roi);
-
-      var roi = new RegionOfInterest(0, 0, 0, 0);
-      return new Measurement(status, 0, 0, true, 0, roi);
+      var roi = new RegionOfInterest(x, y, w, h);
+      return new Measurement(status, distance_mm, ambient, is_long, budget_ms, roi);
     }
 
     @Override
     public void pack(ByteBuffer bb, Measurement em) {
       bb.putInt(em.status);
-      // bb.putInt(em.distance_mm);
-      // bb.putInt(em.ambient);
-      // bb.put((byte) (em.is_long ? 1 : 0));
-      // bb.putInt(em.budget_ms);
-      // bb.putInt(em.roi.x);
-      // bb.putInt(em.roi.y);
-      // bb.putInt(em.roi.w);
-      // bb.putInt(em.roi.h);
+      bb.putInt(em.distance_mm);
+      bb.putInt(em.ambient);
+      bb.put((byte) (em.is_long ? 1 : 0));
+      bb.putInt(em.budget_ms);
+      bb.putInt(em.roi.x);
+      bb.putInt(em.roi.y);
+      bb.putInt(em.roi.w);
+      bb.putInt(em.roi.h);
     }
 
     @Override
     public boolean isImmutable() {
-      return true;
+      return false;
     }
 
     public static final MeasurementStruct struct = new MeasurementStruct();

@@ -6,10 +6,13 @@ package frc.robot;
 
 import com.sbdc.loggerhead.LogMode;
 import com.sbdc.loggerhead.Loggerhead;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import com.sbdc.loggerhead.compoundlogger.LogSubsystemCommands;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.robot.commands.IntakeSequence;
+import frc.robot.commands.ShootSequence;
+import frc.robot.commands.pivotcommands.PivotCommands;
 import frc.robot.subsystems.Flywheel;
 import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
@@ -21,14 +24,12 @@ public class RobotContainer {
   // public final Drivetrain drive = new Drivetrain();
   public final Intake intake = new Intake();
   public final Pivot pivot = new Pivot();
-  public final Flywheel shooter = new Flywheel();
+  public final Flywheel flywheel = new Flywheel();
   public final Indexer indexer = new Indexer();
 
   private final CommandXboxController driverController = new CommandXboxController(0);
 
   public RobotContainer() {
-    SmartDashboard.putBoolean("is field oriented", false);
-
     // drive.setDefaultCommand(
     //     drive.driveCommand(
     //         driverController::getLeftY,
@@ -48,22 +49,39 @@ public class RobotContainer {
   }
 
   private void configureLogging() {
+    var lm = LogMode.NetworkOnly;
     Loggerhead.getInstance()
         .getRootTable()
         .getSubTable("pivot")
-        .addLoggable(pivot, LogMode.NetworkOnly)
+        .addLoggable(pivot, lm)
+        .addCompoundLogger(new LogSubsystemCommands("Commands", lm, pivot))
         .getParent()
         .getSubTable("indexer")
-        .addLoggable(indexer, LogMode.NetworkOnly)
+        .addLoggable(indexer, lm)
+        .addCompoundLogger(new LogSubsystemCommands("Commands", lm, indexer))
         .getParent()
         .getSubTable("intake")
-        .addLoggable(intake, LogMode.NetworkOnly)
+        .addLoggable(intake, lm)
+        .addCompoundLogger(new LogSubsystemCommands("Commands", lm, intake))
         .getParent()
         .getSubTable("shooter")
-        .addLoggable(shooter, LogMode.NetworkOnly);
+        .addLoggable(flywheel, lm)
+        .addCompoundLogger(new LogSubsystemCommands("Commands", lm, flywheel));
   }
 
-  private void configureBindings() {}
+  private void configureBindings() {
+    driverController.a().onTrue(new IntakeSequence(intake, flywheel, pivot, indexer));
+    // driverController
+    //     .a()
+    //     .onTrue(
+    //         SnapperCommands.intakeSequence(
+    //             intake, pivot, flywheel,
+    //             indexer)); // new IntakeSequence(intake, flywheel, pivot, indexer));
+
+    driverController.b().onTrue(PivotCommands.setPivotSpeaker(pivot));
+    driverController.x().onTrue(new ShootSequence(intake, flywheel, pivot, indexer));
+    // driverController.b().onTrue()
+  }
 
   public Command getAutonomousCommand() {
     return Commands.none();

@@ -31,7 +31,7 @@ public class Pivot extends LightSubsystem implements Loggable {
           () -> {
             var setpoint = motor.getMechanismPositionSetpoint();
             if (setpoint.isPresent()) {
-              return setpoint.get() == motor.getMechanismPosition();
+              return setpoint.get().isNear(motor.getMechanismPosition(), 0.1);
             }
             return false;
           });
@@ -51,8 +51,9 @@ public class Pivot extends LightSubsystem implements Loggable {
   }
 
   public void setupLogging(Table parentTable, LogMode logMode, Loggerhead loggerhead) {
-    parentTable.addDoubleLogger(
-        "pivotAngle", logMode, () -> motor.getMechanismPosition().in(Degrees));
+    parentTable
+        .addDoubleLogger("pivotAngle", logMode, () -> motor.getMechanismPosition().in(Degrees))
+        .addBooleanLogger("isatSetpoint", logMode, () -> isAtSetpoint.getAsBoolean());
   }
 
   // @Override
@@ -76,25 +77,5 @@ public class Pivot extends LightSubsystem implements Loggable {
 
   // public Trigger atSetpoint() {
   //   return atSetpoint;
-  // }
-
-  // public void setVoltage(Voltage volts) {
-  //   pivotMotor.setVoltage(volts.baseUnitMagnitude());
-  // }
-
-  // public Command sysidForwardStatic() {
-  //   return SYSID.quasistatic(SysIdRoutine.Direction.kForward);
-  // }
-
-  // public Command sysidReverseStatic() {
-  //   return SYSID.quasistatic(SysIdRoutine.Direction.kReverse);
-  // }
-
-  // public Command sysidForwardDynamic() {
-  //   return SYSID.dynamic(SysIdRoutine.Direction.kForward);
-  // }
-
-  // public Command sysidReverseDynamic() {
-  //   return SYSID.dynamic(SysIdRoutine.Direction.kReverse);
   // }
 }

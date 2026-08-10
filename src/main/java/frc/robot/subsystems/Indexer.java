@@ -1,5 +1,7 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.RPM;
+
 import au.grapplerobotics.ConfigurationFailedException;
 import au.grapplerobotics.LaserCan;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -9,7 +11,6 @@ import com.sbdc.loggerhead.LogMode;
 import com.sbdc.loggerhead.Loggable;
 import com.sbdc.loggerhead.Loggerhead;
 import com.sbdc.loggerhead.Table;
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -72,12 +73,11 @@ public class Indexer extends LightSubsystem implements Loggable {
 
   public void setupLogging(Table parentTable, LogMode logMode, Loggerhead loggerhead) {
     parentTable
-        // .addDoubleLogger("pivotAngle", logMode, () -> motor.getMechanismVelocity().in(RPM))
+        .addDoubleLogger("indexerSpeed", logMode, () -> motor.getMechanismVelocity().in(RPM))
         .addStructLogger(
             "noteSensor1",
             logMode,
             () -> noteSensor.getMeasurement(),
-            LaserCANT.MeasurementStruct.struct)
-        .addStructLogger("Schem,a", logMode, () -> Pose2d.kZero, Pose2d.struct);
+            LaserCANT.MeasurementStruct.struct);
   }
 }
