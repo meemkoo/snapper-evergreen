@@ -20,13 +20,11 @@ public class ShootSequence extends ParallelCommandGroup {
     addCommands(
         Commands.runEnd(() -> flywheel.setDutyCycle(1), flywheel::setOff, flywheel)
             .until(() -> noteHasLeft),
-
         Commands.sequence(
             PivotCommands.setPivotSpeaker(pivot)
                 .alongWith(Commands.run(() -> pivotAtSetpoint = pivot.isAtSetpoint.getAsBoolean()))
                 .until(() -> noteHasLeft),
             PivotCommands.setPivotIntake(pivot)),
-            
         Commands.sequence(
             new WaitUntilCommand(() -> pivotAtSetpoint),
             Commands.runEnd(() -> indexer.setDutyCycle(1), indexer::setOff, indexer)

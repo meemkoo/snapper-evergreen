@@ -9,15 +9,15 @@ import frc.robot.subsystems.Pivot;
 
 public class PivotCommands {
   public static Command setPivotAmp(Pivot pivot) {
-    return Commands.run(() -> pivot.setAngle(Degrees.of(90)), pivot);
+    return Commands.run(() -> pivot.setAngle(Degrees.of(103)), pivot);
   }
 
   public static Command setPivotSpeaker(Pivot pivot) {
-    return Commands.run(() -> pivot.setAngle(Degrees.of(180)), pivot);
+    return Commands.run(() -> pivot.setAngle(Degrees.of(-13)), pivot);
   }
 
   public static Command setPivotIntake(Pivot pivot) {
-    return Commands.run(() -> pivot.setAngle(Degrees.of(17)), pivot);
+    return Commands.run(() -> pivot.setAngle(Degrees.of(-100)), pivot);
   }
 
   public static Command setPivotCustomDashboard(Pivot pivot, CustomPivotAngleSource cpas) {

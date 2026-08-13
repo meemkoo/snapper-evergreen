@@ -17,7 +17,7 @@ public class ShooterConstants {
           .withControlMode(ControlMode.OPEN_LOOP)
           .withTelemetry("FlywheelMotor", TelemetryVerbosity.LOW)
           .withGearing(1)
-          .withMotorInverted(false)
+          .withMotorInverted(true)
           .withIdleMode(MotorMode.COAST)
           .withStatorCurrentLimit(Amps.of(40));
 

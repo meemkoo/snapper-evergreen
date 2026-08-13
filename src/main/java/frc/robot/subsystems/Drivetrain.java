@@ -3,7 +3,6 @@ package frc.robot.subsystems;
 import com.sbdc.loggerhead.LightSubsystem;
 import com.sbdc.loggerhead.Loggable;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -24,9 +23,6 @@ public class Drivetrain extends LightSubsystem implements Loggable {
   File swerveJsonDirectory = new File(Filesystem.getDeployDirectory(), "swerve");
   SwerveDrive drive;
 
-  PIDController autoCollectingPID;
-  PIDController autoAimingPID;
-
   public Drivetrain() {
     try {
       drive =
@@ -42,23 +38,9 @@ public class Drivetrain extends LightSubsystem implements Loggable {
 
     SwerveDriveTelemetry.verbosity = SwerveDriveTelemetry.TelemetryVerbosity.HIGH;
     drive.setCosineCompensator(false);
-    // drive.pushOffsetsToControllers();
+    drive.pushOffsetsToEncoders();
     drive.useExternalFeedbackSensor();
     drive.setHeadingCorrection(false);
-
-    autoCollectingPID =
-        new PIDController(
-            DrivetrainConstants.autoCollectP,
-            DrivetrainConstants.autoCollectI,
-            DrivetrainConstants.autoCollectD);
-    autoCollectingPID.setSetpoint(0);
-
-    autoAimingPID =
-        new PIDController(
-            DrivetrainConstants.autoShootP,
-            DrivetrainConstants.autoShootI,
-            DrivetrainConstants.autoShootD);
-    autoAimingPID.setSetpoint(0);
   }
 
   @Override
