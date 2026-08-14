@@ -1,27 +1,29 @@
 {
-  "location": {
-    "front": -11.25984,
-    "left": -11.25984
-  },
-  "absoluteEncoderOffset": 74.4530368,
+  "$schema": "https://config.yagsl.com/schemas/module.json",
   "drive": {
-    "type": "sparkmax",
+    "type": "sparkmax_neo",
     "id": 7,
-    "canbus": null
+    "canbus": ""
   },
   "angle": {
-    "type": "sparkmax",
+    "type": "sparkmax_neo550",
     "id": 8,
-    "canbus": null
+    "canbus": ""
   },
-  "encoder": {
-    "type": "attached",
-    "id": 0,
-    "canbus": null
-  },
-  "absoluteEncoderInverted": true,
   "inverted": {
     "drive": false,
     "angle": false
+  },
+  "absoluteEncoder": {
+    "type": "revthroughbore_attached",
+    "id": 0,
+    "channel": 0,
+    "canbus": ""
+  },
+  "absoluteEncoderOffset": 0,
+  "absoluteEncoderInverted": true,
+  "location": {
+    "front": -11.25984,
+    "left": -11.25984
   }
 }

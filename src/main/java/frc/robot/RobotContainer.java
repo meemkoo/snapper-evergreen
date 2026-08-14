@@ -6,12 +6,15 @@ package frc.robot;
 
 import com.sbdc.loggerhead.LogMode;
 import com.sbdc.loggerhead.Loggerhead;
+import com.sbdc.loggerhead.compoundlogger.LogNetworkXboxController;
 import com.sbdc.loggerhead.compoundlogger.LogSubsystemCommands;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.AmpIntakeSequence;
+import frc.robot.commands.DriveTeleop;
 import frc.robot.commands.ShootSequence;
+import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Flywheel;
 import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
@@ -20,7 +23,7 @@ import frc.robot.subsystems.Pivot;
 public class RobotContainer {
   public final CustomPivotAngleSource customPivotAngleSource = new CustomPivotAngleSource();
 
-  // public final Drivetrain drive = new Drivetrain();
+  public final Drivetrain drivetrain = new Drivetrain();
   public final Intake intake = new Intake();
   public final Pivot pivot = new Pivot();
   public final Flywheel flywheel = new Flywheel();
@@ -50,6 +53,13 @@ public class RobotContainer {
     var lm = LogMode.NetworkOnly;
     Loggerhead.getInstance()
         .getRootTable()
+        .getSubTable("controller")
+        .addCompoundLogger(new LogNetworkXboxController("evenController", driverController))
+        .getParent()
+        .getSubTable("drivetrain")
+        .addLoggable(drivetrain, lm)
+        .addCompoundLogger(new LogSubsystemCommands("Commands", lm, drivetrain))
+        .getParent()
         .getSubTable("pivot")
         .addLoggable(pivot, lm)
         .addCompoundLogger(new LogSubsystemCommands("Commands", lm, pivot))
@@ -68,27 +78,16 @@ public class RobotContainer {
   }
 
   private void configureBindings() {
-    // driverController.a().onTrue(new IntakeSequence(intake, flywheel, pivot, indexer));
-    // driverController.b().onTrue(PivotCommands.setPivotSpeaker(pivot));
-    // driverController.x().onTrue(new ShootSequence(intake, flywheel, pivot, indexer));
     driverController.x().onTrue(new AmpIntakeSequence(intake, flywheel, pivot, indexer));
     driverController.y().onTrue(new ShootSequence(intake, flywheel, pivot, indexer));
-    // driverController.a().onTrue(PivotCommands.setPivotSpeaker(pivot));
-    // driverController.b().onTrue(PivotCommands.setPivotAmp(pivot));
-    // driverController.x().onTrue(PivotCommands.setPivotIntake(pivot));
 
-    // driverController
-    //     .y()
-    //     .whileTrue(Commands.runEnd(() -> flywheel.setDutyCycle(1), flywheel::setOff, flywheel));
-
-    // driverController
-    //     .leftBumper()
-    //     .whileTrue(Commands.runEnd(() -> indexer.setDutyCycle(1), indexer::setOff, indexer));
-
-    // driverController
-    //     .rightBumper()
-    //     .whileTrue(Commands.runEnd(() -> intake.setDutyCycle(1), intake::setOff, intake));
-    // driverController.b().onTrue()
+    drivetrain.setDefaultCommand(
+        new DriveTeleop(
+            drivetrain,
+            driverController::getLeftY,
+            driverController::getLeftX,
+            driverController::getRightX,
+            driverController::getRightTriggerAxis));
   }
 
   public Command getAutonomousCommand() {
