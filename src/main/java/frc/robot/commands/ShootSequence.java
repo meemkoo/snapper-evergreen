@@ -27,9 +27,11 @@ public class ShootSequence extends ParallelCommandGroup {
             PivotCommands.setPivotIntake(pivot)),
         Commands.sequence(
             new WaitUntilCommand(() -> pivotAtSetpoint),
-            Commands.runEnd(() -> indexer.setDutyCycle(1), indexer::setOff, indexer)
+            Commands.runEnd(() -> indexer.setDutyCycle(-1), indexer::setOff, indexer)
                 .until(indexer.noteSensorActive.negate()),
-            new WaitUntilCommand(1),
-            Commands.runOnce(() -> noteHasLeft = true)));
+            Commands.print("waiting"),
+            // new WaitUntilCommand(1),
+            Commands.runOnce(() -> noteHasLeft = true)
+                .andThen(Commands.print("noteHasLeft=true"))));
   }
 }

@@ -10,7 +10,8 @@ import com.sbdc.loggerhead.compoundlogger.LogSubsystemCommands;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.robot.commands.pivotcommands.PivotCommands;
+import frc.robot.commands.AmpIntakeSequence;
+import frc.robot.commands.ShootSequence;
 import frc.robot.subsystems.Flywheel;
 import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
@@ -70,21 +71,23 @@ public class RobotContainer {
     // driverController.a().onTrue(new IntakeSequence(intake, flywheel, pivot, indexer));
     // driverController.b().onTrue(PivotCommands.setPivotSpeaker(pivot));
     // driverController.x().onTrue(new ShootSequence(intake, flywheel, pivot, indexer));
-    driverController.a().onTrue(PivotCommands.setPivotSpeaker(pivot));
-    driverController.b().onTrue(PivotCommands.setPivotAmp(pivot));
-    driverController.x().onTrue(PivotCommands.setPivotIntake(pivot));
+    driverController.x().onTrue(new AmpIntakeSequence(intake, flywheel, pivot, indexer));
+    driverController.y().onTrue(new ShootSequence(intake, flywheel, pivot, indexer));
+    // driverController.a().onTrue(PivotCommands.setPivotSpeaker(pivot));
+    // driverController.b().onTrue(PivotCommands.setPivotAmp(pivot));
+    // driverController.x().onTrue(PivotCommands.setPivotIntake(pivot));
 
-    driverController
-        .y()
-        .whileTrue(Commands.runEnd(() -> flywheel.setDutyCycle(1), flywheel::setOff, flywheel));
+    // driverController
+    //     .y()
+    //     .whileTrue(Commands.runEnd(() -> flywheel.setDutyCycle(1), flywheel::setOff, flywheel));
 
-    driverController
-        .leftBumper()
-        .whileTrue(Commands.runEnd(() -> indexer.setDutyCycle(1), indexer::setOff, indexer));
+    // driverController
+    //     .leftBumper()
+    //     .whileTrue(Commands.runEnd(() -> indexer.setDutyCycle(1), indexer::setOff, indexer));
 
-    driverController
-        .rightBumper()
-        .whileTrue(Commands.runEnd(() -> intake.setDutyCycle(1), intake::setOff, intake));
+    // driverController
+    //     .rightBumper()
+    //     .whileTrue(Commands.runEnd(() -> intake.setDutyCycle(1), intake::setOff, intake));
     // driverController.b().onTrue()
   }
 

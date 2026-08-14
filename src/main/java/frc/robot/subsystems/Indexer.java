@@ -47,7 +47,7 @@ public class Indexer extends LightSubsystem implements Loggable {
             () -> {
               int measure = noteSensor.getMeasurement().distance_mm;
               if ((Integer) measure != null) {
-                return measure < 100;
+                return measure < 50;
               } else {
                 return true;
               }
@@ -73,6 +73,7 @@ public class Indexer extends LightSubsystem implements Loggable {
 
   public void setupLogging(Table parentTable, LogMode logMode, Loggerhead loggerhead) {
     parentTable
+        .addBooleanLogger("notePossesed", logMode, noteSensorActive::getAsBoolean)
         .addDoubleLogger("indexerSpeed", logMode, () -> motor.getMechanismVelocity().in(RPM))
         .addStructLogger(
             "noteSensor1",

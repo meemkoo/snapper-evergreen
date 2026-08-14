@@ -18,7 +18,7 @@ public class ShooterConstants {
           .withTelemetry("FlywheelMotor", TelemetryVerbosity.LOW)
           .withGearing(1)
           .withMotorInverted(true)
-          .withIdleMode(MotorMode.COAST)
+          .withIdleMode(MotorMode.BRAKE)
           .withStatorCurrentLimit(Amps.of(40));
 
   public static final SmartMotorControllerConfig indexerMotorConfig =
@@ -26,7 +26,7 @@ public class ShooterConstants {
           .withControlMode(ControlMode.OPEN_LOOP)
           .withTelemetry("IndexerMotor", TelemetryVerbosity.LOW)
           .withGearing(1)
-          .withMotorInverted(false)
-          .withIdleMode(MotorMode.COAST)
+          .withMotorInverted(true)
+          .withIdleMode(MotorMode.BRAKE)
           .withStatorCurrentLimit(Amps.of(30));
 }
