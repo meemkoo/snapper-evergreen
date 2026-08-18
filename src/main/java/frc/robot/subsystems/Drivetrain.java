@@ -3,7 +3,6 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.Amps;
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;
-import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RPM;
 
@@ -17,11 +16,11 @@ import com.sbdc.loggerhead.Table;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import yams.gearing.MechanismGearing;
 import yams.mechanisms.config.SwerveDriveConfig;
@@ -29,7 +28,9 @@ import yams.mechanisms.config.SwerveModuleConfig;
 import yams.mechanisms.swerve.SwerveDrive;
 import yams.mechanisms.swerve.SwerveModule;
 import yams.motorcontrollers.SmartMotorController;
+import yams.motorcontrollers.SmartMotorController.ClosedLoopControllerSlot;
 import yams.motorcontrollers.SmartMotorControllerConfig;
+import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.local.SparkWrapper;
 
@@ -40,41 +41,51 @@ public class Drivetrain extends LightSubsystem implements Loggable {
   private SmartMotorControllerConfig buildDriveCfg() {
     return new SmartMotorControllerConfig(this)
         .withWheelDiameter(Inches.of(4))
-        .withClosedLoopController(0.3, 0, 0)
+        .withClosedLoopController(0.03, 0, 0)
         .withGearing(new MechanismGearing(4.71))
-        .withFeedforward(
-            new SimpleMotorFeedforward(
-                0,
-                12.0 / (MetersPerSecond.of(1).in(MetersPerSecond) / Inches.of(4).in(Meters)),
-                0.01))
+        // .withFeedforward(
+        //     new SimpleMotorFeedforward(
+        //         0,
+        //         12.0 / (MetersPerSecond.of(1).in(MetersPerSecond) / Inches.of(4).in(Meters)),
+        //         0.01))
         .withStatorCurrentLimit(Amps.of(40));
     // .withTelemetry("driveMotor", TelemetryVerbosity.HIGH);
   }
 
   private SmartMotorControllerConfig buildAzimuthCfg() {
-    return new SmartMotorControllerConfig(this)
-        .withClosedLoopController(1, 0, 0)
-        .withFeedforward(new SimpleMotorFeedforward(0, 1))
-        .withGearing(new MechanismGearing(46.423645320197))
-        .withStatorCurrentLimit(Amps.of(20));
+    var cfg =
+        new SmartMotorControllerConfig(this)
+            .withClosedLoopController(1, 0, 0)
+            .withControlMode(ControlMode.CLOSED_LOOP)
+            // .withGearing(new GearBox(new double[]{12.8}))
+            // .withFeedforward(new SimpleMotorFeedforward(0, 0))
+            .withGearing(46.42)
+            // .withContinuousWrapping(Rotations.of(-0.5), Rotations.of(0.5))
+            .withStatorCurrentLimit(Amps.of(20));
+    cfg.getPID(ClosedLoopControllerSlot.SLOT_0).ifPresent(pid -> pid.enableContinuousInput(0, 360));
+    return cfg;
     // .withTelemetry("angleMotor", TelemetryVerbosity.HIGH);
   }
 
   public SwerveModule createModule(
-      SparkMax drive, SparkMax azimuth, String moduleName, Translation2d location) {
+      SparkMax drive,
+      SparkMax azimuth,
+      String moduleName,
+      Translation2d location) { // , Angle angleZeroOffset) {
     SmartMotorController driveSMC = new SparkWrapper(drive, DCMotor.getNEO(1), buildDriveCfg());
     SmartMotorController azimuthSMC =
         new SparkWrapper(
             azimuth,
             DCMotor.getNeo550(1),
-            buildAzimuthCfg().withExternalEncoder(azimuth.getAbsoluteEncoder()));
+            buildAzimuthCfg()); // .withExternalEncoder(azimuth.getAbsoluteEncoder()));
 
     return new SwerveModule(
         new SwerveModuleConfig(driveSMC, azimuthSMC)
             .withAbsoluteEncoder(
-                () -> azimuthSMC.getExternalEncoderPosition().orElseGet(() -> Degrees.of(0)))
+                () -> azimuthSMC.getExternalEncoderPosition().orElseGet(() -> Degrees.of(67)))
             .withTelemetry(moduleName, TelemetryVerbosity.HIGH)
             .withLocation(location)
+
             // State optimization rotates the module at most 90 deg instead of 180 deg + reversing
             // drive.
             .withOptimization(true));
@@ -138,6 +149,8 @@ public class Drivetrain extends LightSubsystem implements Loggable {
   }
 
   public void setupLogging(Table parentTable, LogMode logMode, Loggerhead loggerhead) {
+    loggerhead.addStructArrayLogger(
+        "swervestate", logMode, () -> drive.getModuleStates(), SwerveModuleState.struct);
     parentTable.addStructLogger("robot", logMode, drive::getPose, Pose2d.struct);
   }
 }
