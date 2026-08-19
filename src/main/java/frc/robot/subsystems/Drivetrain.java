@@ -16,7 +16,6 @@ import com.sbdc.loggerhead.Loggerhead;
 import com.sbdc.loggerhead.Table;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -37,7 +36,7 @@ public class Drivetrain extends LightSubsystem implements Loggable {
   private SwerveDrive drive;
   private AHRS gyro = new AHRS(NavXComType.kMXP_SPI);
 
-  private SmartMotorControllerConfig buildDriveCfg() {
+  private SmartMotorControllerConfig buildDriveCfg(String name) {
     return new SmartMotorControllerConfig(this)
         .withWheelDiameter(Inches.of(4))
         .withClosedLoopController(0.3, 0, 0)
@@ -47,32 +46,37 @@ public class Drivetrain extends LightSubsystem implements Loggable {
                 0,
                 12.0 / (MetersPerSecond.of(1).in(MetersPerSecond) / Inches.of(4).in(Meters)),
                 0.01))
-        .withStatorCurrentLimit(Amps.of(40));
-    // .withTelemetry("driveMotor", TelemetryVerbosity.HIGH);
+        .withStatorCurrentLimit(Amps.of(40))
+        .withTelemetry("driveMotor" + name, TelemetryVerbosity.HIGH);
   }
 
-  private SmartMotorControllerConfig buildAzimuthCfg() {
-    return new SmartMotorControllerConfig(this)
-        .withClosedLoopController(1, 0, 0)
-        .withFeedforward(new SimpleMotorFeedforward(0, 1))
-        .withGearing(new MechanismGearing(46.423645320197))
-        .withStatorCurrentLimit(Amps.of(20));
-    // .withTelemetry("angleMotor", TelemetryVerbosity.HIGH);
+  private SmartMotorControllerConfig buildAzimuthCfg(String name) {
+    var config =
+        new SmartMotorControllerConfig(this)
+            .withClosedLoopController(1, 0, 0)
+            .withFeedforward(new SimpleMotorFeedforward(0, 1))
+            .withGearing(new MechanismGearing(46.423645320197))
+            .withStatorCurrentLimit(Amps.of(20))
+            .withContinuousWrapping(Degrees.of(0), Degrees.of(360))
+            .withTelemetry("angleMotor" + name, TelemetryVerbosity.HIGH);
+
+    return config;
   }
 
   public SwerveModule createModule(
       SparkMax drive, SparkMax azimuth, String moduleName, Translation2d location) {
-    SmartMotorController driveSMC = new SparkWrapper(drive, DCMotor.getNEO(1), buildDriveCfg());
+    SmartMotorController driveSMC =
+        new SparkWrapper(drive, DCMotor.getNEO(1), buildDriveCfg(moduleName));
     SmartMotorController azimuthSMC =
         new SparkWrapper(
             azimuth,
             DCMotor.getNeo550(1),
-            buildAzimuthCfg().withExternalEncoder(azimuth.getAbsoluteEncoder()));
+            buildAzimuthCfg(moduleName).withExternalEncoder(azimuth.getAbsoluteEncoder()));
 
     return new SwerveModule(
         new SwerveModuleConfig(driveSMC, azimuthSMC)
             .withAbsoluteEncoder(
-                () -> azimuthSMC.getExternalEncoderPosition().orElseGet(() -> Degrees.of(0)))
+                () -> azimuthSMC.getExternalEncoderPosition().orElseGet(() -> Degrees.of(67)))
             .withTelemetry(moduleName, TelemetryVerbosity.HIGH)
             .withLocation(location)
             // State optimization rotates the module at most 90 deg instead of 180 deg + reversing
@@ -111,14 +115,11 @@ public class Drivetrain extends LightSubsystem implements Loggable {
 
     SwerveDriveConfig config =
         new SwerveDriveConfig(this, fl, fr, bl, br)
+            .withDataLogName("Swerve")
+            .withTelemetry(TelemetryVerbosity.HIGH)
             .withMaximumChassisSpeed(MetersPerSecond.of(4.8), RPM.of(80))
-            // gyro.getYaw() gives the heading used for field-relative driving.
-            .withGyro(() -> Degrees.of(gyro.getYaw()).plus(Degrees.of(180)))
-            .withStartingPose(new Pose2d(0, 0, Rotation2d.fromDegrees(0)))
-            // Translation and rotation PIDs are used by driveToPose(); kP=1 is a conservative
-            // start.
-            .withTranslationController(new PIDController(1, 0, 0))
-            .withRotationController(new PIDController(1, 0, 0));
+            .withGyro(() -> Degrees.of(gyro.getAngle()))
+            .withStartingPose(new Pose2d(4, 4, Rotation2d.fromDegrees(0)));
 
     drive = new SwerveDrive(config);
   }
