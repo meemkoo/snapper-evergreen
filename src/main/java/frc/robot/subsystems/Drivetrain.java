@@ -1,144 +1,182 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.Amps;
-import static edu.wpi.first.units.Units.Degrees;
-import static edu.wpi.first.units.Units.Inches;
-import static edu.wpi.first.units.Units.Meters;
-import static edu.wpi.first.units.Units.MetersPerSecond;
-import static edu.wpi.first.units.Units.RPM;
-
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkMax;
-import com.sbdc.loggerhead.LightSubsystem;
-import com.sbdc.loggerhead.LogMode;
-import com.sbdc.loggerhead.Loggable;
-import com.sbdc.loggerhead.Loggerhead;
-import com.sbdc.loggerhead.Table;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.hal.FRCNetComm.tInstances;
+import edu.wpi.first.hal.FRCNetComm.tResourceType;
+import edu.wpi.first.hal.HAL;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.system.plant.DCMotor;
-import yams.gearing.MechanismGearing;
-import yams.mechanisms.config.SwerveDriveConfig;
-import yams.mechanisms.config.SwerveModuleConfig;
-import yams.mechanisms.swerve.SwerveDrive;
-import yams.mechanisms.swerve.SwerveModule;
-import yams.motorcontrollers.SmartMotorController;
-import yams.motorcontrollers.SmartMotorControllerConfig;
-import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
-import yams.motorcontrollers.local.SparkWrapper;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.DriveConstants;
 
-public class Drivetrain extends LightSubsystem implements Loggable {
-  private SwerveDrive drive;
-  private AHRS gyro = new AHRS(NavXComType.kMXP_SPI);
+public class Drivetrain extends SubsystemBase {
+  // Create MAXSwerveModules
+  private final MAXSwerveModule m_frontLeft =
+      new MAXSwerveModule(
+          DriveConstants.kFrontLeftDrivingCanId,
+          DriveConstants.kFrontLeftTurningCanId,
+          DriveConstants.kFrontLeftChassisAngularOffset);
 
-  private SmartMotorControllerConfig buildDriveCfg(String name) {
-    return new SmartMotorControllerConfig(this)
-        .withWheelDiameter(Inches.of(4))
-        .withClosedLoopController(0.3, 0, 0)
-        .withGearing(new MechanismGearing(4.71))
-        .withFeedforward(
-            new SimpleMotorFeedforward(
-                0,
-                12.0 / (MetersPerSecond.of(1).in(MetersPerSecond) / Inches.of(4).in(Meters)),
-                0.01))
-        .withStatorCurrentLimit(Amps.of(40))
-        .withTelemetry("driveMotor" + name, TelemetryVerbosity.HIGH);
-  }
+  private final MAXSwerveModule m_frontRight =
+      new MAXSwerveModule(
+          DriveConstants.kFrontRightDrivingCanId,
+          DriveConstants.kFrontRightTurningCanId,
+          DriveConstants.kFrontRightChassisAngularOffset);
 
-  private SmartMotorControllerConfig buildAzimuthCfg(String name) {
-    var config =
-        new SmartMotorControllerConfig(this)
-            .withClosedLoopController(1, 0, 0)
-            .withFeedforward(new SimpleMotorFeedforward(0, 1))
-            .withGearing(new MechanismGearing(46.423645320197))
-            .withStatorCurrentLimit(Amps.of(20))
-            .withContinuousWrapping(Degrees.of(0), Degrees.of(360))
-            .withTelemetry("angleMotor" + name, TelemetryVerbosity.HIGH);
+  private final MAXSwerveModule m_rearLeft =
+      new MAXSwerveModule(
+          DriveConstants.kRearLeftDrivingCanId,
+          DriveConstants.kRearLeftTurningCanId,
+          DriveConstants.kBackLeftChassisAngularOffset);
 
-    return config;
-  }
+  private final MAXSwerveModule m_rearRight =
+      new MAXSwerveModule(
+          DriveConstants.kRearRightDrivingCanId,
+          DriveConstants.kRearRightTurningCanId,
+          DriveConstants.kBackRightChassisAngularOffset);
 
-  public SwerveModule createModule(
-      SparkMax drive, SparkMax azimuth, String moduleName, Translation2d location) {
-    SmartMotorController driveSMC =
-        new SparkWrapper(drive, DCMotor.getNEO(1), buildDriveCfg(moduleName));
-    SmartMotorController azimuthSMC =
-        new SparkWrapper(
-            azimuth,
-            DCMotor.getNeo550(1),
-            buildAzimuthCfg(moduleName).withExternalEncoder(azimuth.getAbsoluteEncoder()));
+  // The gyro sensor
+  private final AHRS m_gyro = new AHRS(NavXComType.kMXP_SPI);
 
-    return new SwerveModule(
-        new SwerveModuleConfig(driveSMC, azimuthSMC)
-            .withAbsoluteEncoder(
-                () -> azimuthSMC.getExternalEncoderPosition().orElseGet(() -> Degrees.of(67)))
-            .withTelemetry(moduleName, TelemetryVerbosity.HIGH)
-            .withLocation(location)
-            // State optimization rotates the module at most 90 deg instead of 180 deg + reversing
-            // drive.
-            .withOptimization(true));
-  }
+  // Odometry class for tracking robot pose
+  SwerveDriveOdometry m_odometry =
+      new SwerveDriveOdometry(
+          DriveConstants.kDriveKinematics,
+          Rotation2d.fromDegrees(m_gyro.getAngle()),
+          new SwerveModulePosition[] {
+            m_frontLeft.getPosition(),
+            m_frontRight.getPosition(),
+            m_rearLeft.getPosition(),
+            m_rearRight.getPosition()
+          });
 
+  /** Creates a new DriveSubsystem. */
   public Drivetrain() {
-    // Module locations: +X forward, +Y left. 24-inch offsets assume module
-    // centers are 24 in from the robot center — update to match your chassis.
-    // CAN IDs are grouped as (drive, steer, CANcoder) per module.
-    var fl =
-        createModule(
-            new SparkMax(1, MotorType.kBrushless),
-            new SparkMax(2, MotorType.kBrushless),
-            "frontleft",
-            new Translation2d(Inches.of(11.25984), Inches.of(11.25984)));
-    var fr =
-        createModule(
-            new SparkMax(3, MotorType.kBrushless),
-            new SparkMax(4, MotorType.kBrushless),
-            "frontright",
-            new Translation2d(Inches.of(11.25984), Inches.of(-11.25984)));
-    var bl =
-        createModule(
-            new SparkMax(5, MotorType.kBrushless),
-            new SparkMax(6, MotorType.kBrushless),
-            "backleft",
-            new Translation2d(Inches.of(-11.25984), Inches.of(11.25984)));
-    var br =
-        createModule(
-            new SparkMax(7, MotorType.kBrushless),
-            new SparkMax(8, MotorType.kBrushless),
-            "backright",
-            new Translation2d(Inches.of(-11.25984), Inches.of(-11.25984)));
-
-    SwerveDriveConfig config =
-        new SwerveDriveConfig(this, fl, fr, bl, br)
-            .withDataLogName("Swerve")
-            .withTelemetry(TelemetryVerbosity.HIGH)
-            .withMaximumChassisSpeed(MetersPerSecond.of(4.8), RPM.of(80))
-            .withGyro(() -> Degrees.of(gyro.getAngle()))
-            .withStartingPose(new Pose2d(4, 4, Rotation2d.fromDegrees(0)));
-
-    drive = new SwerveDrive(config);
-  }
-
-  public void drive(ChassisSpeeds fieldRelativeChassisSpeeds) {
-    drive.setFieldRelativeChassisSpeeds(fieldRelativeChassisSpeeds);
+    // Usage reporting for MAXSwerve template
+    HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_MaxSwerve);
   }
 
   @Override
   public void periodic() {
-    drive.updateTelemetry();
+    // Update the odometry in the periodic block
+    m_odometry.update(
+        Rotation2d.fromDegrees(m_gyro.getAngle()),
+        new SwerveModulePosition[] {
+          m_frontLeft.getPosition(),
+          m_frontRight.getPosition(),
+          m_rearLeft.getPosition(),
+          m_rearRight.getPosition()
+        });
   }
 
-  @Override
-  public void simulationPeriodic() {
-    drive.simIterate();
+  /**
+   * Returns the currently-estimated pose of the robot.
+   *
+   * @return The pose.
+   */
+  public Pose2d getPose() {
+    return m_odometry.getPoseMeters();
   }
 
-  public void setupLogging(Table parentTable, LogMode logMode, Loggerhead loggerhead) {
-    parentTable.addStructLogger("robot", logMode, drive::getPose, Pose2d.struct);
+  /**
+   * Resets the odometry to the specified pose.
+   *
+   * @param pose The pose to which to set the odometry.
+   */
+  public void resetOdometry(Pose2d pose) {
+    m_odometry.resetPosition(
+        Rotation2d.fromDegrees(m_gyro.getAngle()),
+        new SwerveModulePosition[] {
+          m_frontLeft.getPosition(),
+          m_frontRight.getPosition(),
+          m_rearLeft.getPosition(),
+          m_rearRight.getPosition()
+        },
+        pose);
+  }
+
+  /**
+   * Method to drive the robot using joystick info.
+   *
+   * @param xSpeed Speed of the robot in the x direction (forward).
+   * @param ySpeed Speed of the robot in the y direction (sideways).
+   * @param rot Angular rate of the robot.
+   * @param fieldRelative Whether the provided x and y speeds are relative to the field.
+   */
+  public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
+    // Convert the commanded speeds into the correct units for the drivetrain
+    double xSpeedDelivered = xSpeed * DriveConstants.kMaxSpeedMetersPerSecond;
+    double ySpeedDelivered = ySpeed * DriveConstants.kMaxSpeedMetersPerSecond;
+    double rotDelivered = rot * DriveConstants.kMaxAngularSpeed;
+
+    var swerveModuleStates =
+        DriveConstants.kDriveKinematics.toSwerveModuleStates(
+            fieldRelative
+                ? ChassisSpeeds.fromFieldRelativeSpeeds(
+                    xSpeedDelivered,
+                    ySpeedDelivered,
+                    rotDelivered,
+                    Rotation2d.fromDegrees(m_gyro.getAngle()))
+                : new ChassisSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered));
+    SwerveDriveKinematics.desaturateWheelSpeeds(
+        swerveModuleStates, DriveConstants.kMaxSpeedMetersPerSecond);
+    m_frontLeft.setDesiredState(swerveModuleStates[0]);
+    m_frontRight.setDesiredState(swerveModuleStates[1]);
+    m_rearLeft.setDesiredState(swerveModuleStates[2]);
+    m_rearRight.setDesiredState(swerveModuleStates[3]);
+  }
+
+  /** Sets the wheels into an X formation to prevent movement. */
+  public void setX() {
+    m_frontLeft.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45)));
+    m_frontRight.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(-45)));
+    m_rearLeft.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(-45)));
+    m_rearRight.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45)));
+  }
+
+  /**
+   * Sets the swerve ModuleStates.
+   *
+   * @param desiredStates The desired SwerveModule states.
+   */
+  public void setModuleStates(SwerveModuleState[] desiredStates) {
+    SwerveDriveKinematics.desaturateWheelSpeeds(
+        desiredStates, DriveConstants.kMaxSpeedMetersPerSecond);
+    m_frontLeft.setDesiredState(desiredStates[0]);
+    m_frontRight.setDesiredState(desiredStates[1]);
+    m_rearLeft.setDesiredState(desiredStates[2]);
+    m_rearRight.setDesiredState(desiredStates[3]);
+  }
+
+  /** Resets the drive encoders to currently read a position of 0. */
+  public void resetEncoders() {
+    m_frontLeft.resetEncoders();
+    m_rearLeft.resetEncoders();
+    m_frontRight.resetEncoders();
+    m_rearRight.resetEncoders();
+  }
+
+  /** Zeroes the heading of the robot. */
+  public void zeroHeading() {
+    m_gyro.reset();
+  }
+
+  /**
+   * Returns the heading of the robot.
+   *
+   * @return the robot's heading in degrees, from -180 to 180
+   */
+  public double getHeading() {
+    return Rotation2d.fromDegrees(m_gyro.getAngle()).getDegrees();
   }
 }

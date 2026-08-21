@@ -57,7 +57,7 @@ public class RobotContainer {
         .addCompoundLogger(new LogNetworkXboxController("evenController", driverController))
         .getParent()
         .getSubTable("drivetrain")
-        .addLoggable(drivetrain, lm)
+        // .addLoggable(drivetrain, lm)
         .addCompoundLogger(new LogSubsystemCommands("Commands", lm, drivetrain))
         .getParent()
         .getSubTable("pivot")

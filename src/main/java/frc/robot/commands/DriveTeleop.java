@@ -37,7 +37,8 @@ public class DriveTeleop extends Command {
     var speeds =
         new ChassisSpeeds(
             xpercent.get() * gasPedal.get(), ypercent.get() * gasPedal.get(), tpercent.get());
-    drivetrain.drive(speeds);
+    drivetrain.drive(
+        xpercent.get() * gasPedal.get(), ypercent.get() * gasPedal.get(), tpercent.get(), true);
   }
 
   @Override
